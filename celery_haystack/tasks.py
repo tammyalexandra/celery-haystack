@@ -140,19 +140,21 @@ class CeleryHaystackSignalHandler(Task):
                              (identifier, current_index_name))
                 raise ValueError("Couldn't load object '%s'" % identifier)
 
-            # Call the appropriate handler of the current index and
-            # handle exception if neccessary
-            try:
-                handler_options = self.get_handler_options(**kwargs)
-                current_index.update_object(instance, **handler_options)
-            except Exception, exc:
-                logger.error(exc)
-                self.retry(exc=exc)
-            else:
-                msg = ("Updated '%s' (with %s)" %
-                       (identifier, current_index_name))
-                logger.debug(msg)
-                return msg
+            # TAH:  Check to see if we want to index this content.
+            if current_index.should_update(instance):
+                # Call the appropriate handler of the current index and
+                # handle exception if neccessary
+                try:
+                    handler_options = self.get_handler_options(**kwargs)
+                    current_index.update_object(instance, **handler_options)
+                except Exception, exc:
+                    logger.error(exc)
+                    self.retry(exc=exc)
+                else:
+                    msg = ("TAH Updated '%s' (with %s)" %
+                           (identifier, current_index_name))
+                    logger.debug(msg)
+                    return msg
         else:
             logger.error("Unrecognized action '%s'. Moving on..." % action)
             raise ValueError("Unrecognized action %s" % action)
